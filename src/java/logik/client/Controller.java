@@ -60,6 +60,7 @@ public class Controller {
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
             setAuthorized(false);
+
             new Thread(() -> {
                 try {
                     while (true) {
@@ -73,7 +74,9 @@ public class Controller {
                     }
                     while (true) {
                         String str = in.readUTF();
-                        if (str.equals("/serverclosed")) break;
+                        if (str.equals("/serverclosed")) {
+                            break;
+                        }
                         chatArea.appendText(str + "\n");
                     }
                 } catch (IOException e) {
@@ -87,6 +90,8 @@ public class Controller {
                     setAuthorized(false);
                 }
             }).start();
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -45,6 +45,14 @@ public class Server {
         }
     }
 
+    public void sendPrivateMsg(String msg, String nick) {
+        for (ClientHandler o : clients) {
+            if(o.getNick().equalsIgnoreCase(nick)) {
+                o.sendMsg(msg);
+            }
+        }
+    }
+
     public void subscribe(ClientHandler client) {
         clients.add(client);
     }

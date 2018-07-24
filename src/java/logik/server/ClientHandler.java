@@ -45,7 +45,17 @@ public class ClientHandler {
                             out.writeUTF("/serverclosed");
                             break;
                         }
-                        server.broadcastMsg(nick + ": " + str);
+
+                        String[] tokens = str.split(" ");
+                        if(tokens[0].equals("/w")) {
+                            String msg = str.replaceAll(tokens[0],"").replaceAll(tokens[1], "");
+                            server.sendPrivateMsg(nick + ": " + msg, tokens[1]);
+                            System.out.println("Client: " + str + " from " + tokens[1]);
+                        }
+                        else {
+                            server.broadcastMsg(nick + ": " + str);
+                        }
+
                         System.out.println("Client: " + str);
                     }
                 } catch (IOException e) {
