@@ -1,6 +1,9 @@
 package logik.client;
 
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -19,10 +22,10 @@ public class Controller {
     TextArea chatArea;
 
     @FXML
-    HBox bottomPanel;
+    HBox upperPanel;
 
     @FXML
-    HBox upperPanel;
+    HBox bottomPanel;
 
     @FXML
     TextField loginField;
@@ -30,27 +33,38 @@ public class Controller {
     @FXML
     PasswordField passwordField;
 
+    @FXML
+    ListView clientList;
+
+
+    private boolean isAuthorized;
     Socket socket;
     DataInputStream in;
     DataOutputStream out;
 
+    long time;
+
+    final int IDLE_TIME = 10;
     final String IP_ADDRESS = "localhost";
     final int PORT = 8989;
 
-    private boolean isAuthorized;
 
     public void setAuthorized(boolean isAuthorized) {
         this.isAuthorized = isAuthorized;
-        if (!isAuthorized) {
+        if(!isAuthorized) {
             upperPanel.setVisible(true);
             upperPanel.setManaged(true);
             bottomPanel.setVisible(false);
             bottomPanel.setManaged(false);
+            clientList.setManaged(false);
+            clientList.setVisible(false);
         } else {
             upperPanel.setVisible(false);
             upperPanel.setManaged(false);
             bottomPanel.setVisible(true);
             bottomPanel.setManaged(true);
+            clientList.setManaged(true);
+            clientList.setVisible(true);
         }
     }
 
@@ -60,24 +74,37 @@ public class Controller {
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
             setAuthorized(false);
-
             new Thread(() -> {
                 try {
                     while (true) {
                         String str = in.readUTF();
-                        if (str.startsWith("/authok")) {
+                        if(str.startsWith("/authok")) {
                             setAuthorized(true);
                             break;
                         } else {
                             chatArea.appendText(str + "\n");
                         }
                     }
+                    getHistory();
+
                     while (true) {
                         String str = in.readUTF();
-                        if (str.equals("/serverclosed")) {
-                            break;
+                        if (str.equals("/serverclosed")) break;
+
+                        if (str.startsWith("/clientlist")) {
+                            String[] tokens = str.split(" ");
+                            Platform.runLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    clientList.getItems().clear();
+                                    for (int i = 1; i < tokens.length; i++) {
+                                        clientList.getItems().add(tokens[i]);
+                                    }
+                                }
+                            });
+                        } else {
+                            chatArea.appendText(str + "\n");
                         }
-                        chatArea.appendText(str + "\n");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -90,12 +117,11 @@ public class Controller {
                     setAuthorized(false);
                 }
             }).start();
-
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
     public void sendMsg() {
         try {
@@ -107,10 +133,11 @@ public class Controller {
         }
     }
 
-    public void tryToAuth() {
-        if (socket == null || socket.isClosed()) {
+    public void tryToAuth(ActionEvent actionEvent) {
+        if(socket == null || socket.isClosed()) {
             connect();
         }
+
         try {
             out.writeUTF("/auth " + loginField.getText() + " " + passwordField.getText());
             loginField.clear();
@@ -119,5 +146,12 @@ public class Controller {
             e.printStackTrace();
         }
     }
-}
 
+    public void getHistory() {
+        try {
+            out.writeUTF("/history ");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
